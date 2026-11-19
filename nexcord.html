@@ -249,11 +249,11 @@
         }
 
         .channels-list {
-            padding: 14px 12px;
+            padding: 12px 12px;
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
             overflow-y: auto;
         }
 
@@ -262,7 +262,7 @@
             font-weight: 700;
             text-transform: uppercase;
             color: var(--text-muted);
-            padding: 8px 10px 6px;
+            padding: 10px 10px 5px;
             letter-spacing: 0.6px;
         }
 
@@ -271,7 +271,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            padding: 10px 12px;
+            padding: 9px 12px;
             border-radius: 10px;
             color: var(--text-secondary);
             cursor: pointer;
@@ -287,10 +287,23 @@
             min-width: 0;
         }
 
+        .channel-name-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .channel-item:hover { background: var(--bg-hover); color: var(--text-primary); }
         .channel-item.active { background: rgba(99, 102, 241, 0.15); color: #fff; font-weight: 600; }
         .channel-item.active .hash { color: #818cf8; }
         .hash { color: var(--text-muted); font-size: 18px; font-weight: 600; }
+
+        .dm-mini-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
 
         .voice-members {
             padding-left: 26px;
@@ -503,7 +516,7 @@
         #messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: 18px 20px;
+            padding: 18px 20px 8px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -605,6 +618,38 @@
             margin-top: 8px;
             border: 1px solid var(--border);
             display: block;
+        }
+
+        /* ИНДИКАТОР ПЕЧАТИ КАК В DISCORD */
+        .typing-bar {
+            min-height: 22px;
+            padding: 2px 20px 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .typing-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .typing-dots span {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            animation: typingBounce 1.2s infinite ease-in-out;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+            40% { transform: translateY(-4px); opacity: 1; }
         }
 
         .ping-quick-bar {
@@ -924,6 +969,8 @@
                     <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px;">О себе</div>
                     <div id="view-bio">Пользователь пока ничего не написал о себе.</div>
                 </div>
+
+                <button type="button" class="btn-primary" id="view-dm-btn" style="margin-top: 16px;">✉️ Написать в ЛС</button>
             </div>
         </div>
     </div>
@@ -931,21 +978,24 @@
     <!-- ЛЕВАЯ ПАНЕЛЬ -->
     <aside class="sidebar-left" id="sidebar-left">
         <div class="server-header">
-            <div class="server-title"><span>NEXCORD</span> <span class="badge-pro">2.4</span></div>
+            <div class="server-title"><span>NEXCORD</span> <span class="badge-pro">2.5</span></div>
             <button type="button" class="mobile-nav-btn" onclick="closeMobileDrawers()">✕</button>
         </div>
 
         <div class="channels-list">
             <div class="category-label">Текстовые каналы</div>
-            <div class="channel-item active" onclick="switchChannel('general', 'основной', 'Общение на любые темы', this)">
+            <div class="channel-item active" data-ch="general" onclick="switchChannel('general', 'основной', 'Общение на любые темы', this)">
                 <div class="channel-item-left"><span class="hash">#</span> <span class="channel-name-text">основной</span></div>
             </div>
-            <div class="channel-item" onclick="switchChannel('minecraft', 'minecraft-smp', 'Координаты, сборы в игру и IP', this)">
+            <div class="channel-item" data-ch="minecraft" onclick="switchChannel('minecraft', 'minecraft-smp', 'Координаты, сборы в игру и IP', this)">
                 <div class="channel-item-left"><span class="hash">#</span> <span class="channel-name-text">minecraft-smp</span></div>
             </div>
-            <div class="channel-item" onclick="switchChannel('memes', 'мемы-и-скрины', 'Кидайте ссылки на картинки и клипы', this)">
+            <div class="channel-item" data-ch="memes" onclick="switchChannel('memes', 'мемы-и-скрины', 'Кидайте ссылки на картинки и клипы', this)">
                 <div class="channel-item-left"><span class="hash">#</span> <span class="channel-name-text">мемы-и-скрины</span></div>
             </div>
+
+            <div class="category-label">Личные сообщения</div>
+            <div id="dm-list"></div>
 
             <div class="category-label">Голосовые каналы</div>
 
@@ -994,7 +1044,7 @@
         <header class="chat-header">
             <div class="header-left">
                 <button type="button" class="mobile-nav-btn" onclick="toggleLeftDrawer()">☰</button>
-                <span class="hash" style="font-size: 20px;">#</span>
+                <span class="hash" id="current-channel-icon" style="font-size: 20px;">#</span>
                 <span class="header-title" id="current-channel-title">основной</span>
                 <span class="header-desc" id="current-channel-desc">Общение на любые темы</span>
             </div>
@@ -1007,16 +1057,19 @@
 
         <div id="messages-container"></div>
 
+        <!-- ИНДИКАТОР ПЕЧАТИ -->
+        <div class="typing-bar" id="typing-bar"></div>
+
         <div class="input-container">
             <div class="ping-quick-bar" id="ping-quick-bar">
-                <button type="button" class="ping-chip" onclick="insertPing('@all')">📣 @all (всем)</button>
+                <button type="button" class="ping-chip" onclick="insertPing('@all')">📣 @all</button>
             </div>
             <div id="reply-bar">
                 <span id="reply-text">Ответ для...</span>
                 <span style="cursor:pointer; font-weight:bold;" onclick="cancelReply()">✕</span>
             </div>
             <div class="input-box" id="input-box">
-                <input type="text" id="msg-input" placeholder="Написать в #основной... (@all или @Ник для пинга)" autocomplete="off">
+                <input type="text" id="msg-input" placeholder="Написать в #основной... (@all или @Ник)" autocomplete="off">
                 <button type="button" class="send-btn" id="send-msg-btn">➤</button>
             </div>
         </div>
@@ -1062,9 +1115,15 @@
         let allProfiles = {};
         let onlineUsers = {};
         let currentChannel = "general";
+        let currentIsDm = false;
+        let currentDmTarget = "";
+        let openDmPartners = JSON.parse(localStorage.getItem("nex_dm_partners") || "[]");
         let currentReply = null;
         let unsubscribeAdded = null;
         let unsubscribeRemoved = null;
+        let unsubscribeTyping = null;
+        let typingTimeout = null;
+        let isCurrentlyTyping = false;
 
         let currentVoiceRoom = null;
         let myPeerId = null;
@@ -1078,7 +1137,23 @@
         const STATUS_COLORS = { online: "#10b981", idle: "#f59e0b", dnd: "#ef4444" };
         const STATUS_NAMES = { online: "В сети", idle: "Отошёл", dnd: "Не беспокоить" };
 
-        // Звуки уведомлений (четкий двойной "динь-дон", отличающийся от игры/видео)
+        function safeKey(name) {
+            return (name || "").replace(/[.#$\[\]]/g, "_");
+        }
+
+        function getDmRoomId(userA, userB) {
+            const pair = [safeKey(userA), safeKey(userB)].sort();
+            return "dm_" + pair[0] + "__" + pair[1];
+        }
+
+        function getMessagesPath() {
+            return currentIsDm ? ("dms/" + currentChannel) : ("channels/" + currentChannel);
+        }
+
+        function getTypingPath() {
+            return currentIsDm ? ("typing_dm/" + currentChannel) : ("typing/" + currentChannel);
+        }
+
         function playMessageChime(isPing = false) {
             if (profile.status === "dnd") return;
             try {
@@ -1110,7 +1185,6 @@
             } catch (e) {}
         }
 
-        // Уведомления браузера (ПК и мобильные)
         window.requestNotifyPermission = async function() {
             if (!("Notification" in window)) {
                 alert("Этот браузер не поддерживает системные уведомления.");
@@ -1154,7 +1228,6 @@
             } catch (e) {}
         }
 
-        // Мобильные шторки
         window.toggleLeftDrawer = function() {
             const left = document.getElementById("sidebar-left");
             const right = document.getElementById("sidebar-right");
@@ -1219,6 +1292,7 @@
         }
 
         window.logout = function() {
+            stopTypingNow();
             leaveVoiceRoom();
             localStorage.removeItem("nex_user");
             location.reload();
@@ -1232,6 +1306,67 @@
             localStorage.setItem("nex_avatar_url", profile.avatarUrl);
             localStorage.setItem("nex_bio", profile.bio);
         }
+
+        function saveDmPartners() {
+            localStorage.setItem("nex_dm_partners", JSON.stringify(openDmPartners));
+        }
+
+        function addDmPartner(partnerName) {
+            if (!partnerName || partnerName === profile.name) return;
+            if (!openDmPartners.includes(partnerName)) {
+                openDmPartners.push(partnerName);
+                saveDmPartners();
+            }
+            renderDmList();
+        }
+
+        function renderDmList() {
+            const dmList = document.getElementById("dm-list");
+            dmList.innerHTML = "";
+            openDmPartners.forEach(partnerName => {
+                const roomId = getDmRoomId(profile.name, partnerName);
+                const pData = onlineUsers[safeKey(partnerName)] || allProfiles[safeKey(partnerName)] || {};
+                const dotColor = onlineUsers[safeKey(partnerName)]
+                    ? (STATUS_COLORS[pData.status] || STATUS_COLORS.online)
+                    : "#6b7280";
+
+                const item = document.createElement("div");
+                item.className = "channel-item" + (currentIsDm && currentChannel === roomId ? " active" : "");
+                item.dataset.dm = roomId;
+                item.onclick = () => openDirectMessage(partnerName);
+                item.innerHTML = `
+                    <div class="channel-item-left">
+                        <span class="dm-mini-dot" style="background:${dotColor};"></span>
+                        <span class="channel-name-text">${escapeHtml(partnerName)}</span>
+                    </div>
+                `;
+                dmList.appendChild(item);
+            });
+        }
+
+        window.openDirectMessage = function(targetName) {
+            if (!targetName || targetName === profile.name) return;
+            stopTypingNow();
+            addDmPartner(targetName);
+
+            const roomId = getDmRoomId(profile.name, targetName);
+            currentIsDm = true;
+            currentDmTarget = targetName;
+            currentChannel = roomId;
+
+            document.querySelectorAll(".channel-item").forEach(c => c.classList.remove("active"));
+            renderDmList();
+
+            document.getElementById("current-channel-icon").innerText = "✉️";
+            document.getElementById("current-channel-title").innerText = targetName;
+            document.getElementById("current-channel-desc").innerText = "Личная переписка";
+            document.getElementById("msg-input").placeholder = `Написать в ЛС ${targetName}...`;
+            document.getElementById("profile-view-modal").style.display = "none";
+
+            cancelReply();
+            closeMobileDrawers();
+            loadChannel(roomId);
+        };
 
         function applyAvatarStyle(el, letterEl, userObj) {
             if (userObj.avatarUrl) {
@@ -1257,9 +1392,9 @@
 
         function syncProfileToFirebase() {
             if (!db) return;
-            const safeName = profile.name.replace(/[.#$\[\]]/g, "_");
-            set(ref(db, "profiles/" + safeName), profile);
-            set(ref(db, "online/" + safeName), profile);
+            const k = safeKey(profile.name);
+            set(ref(db, "profiles/" + k), profile);
+            set(ref(db, "online/" + k), profile);
         }
 
         function rebuildPingChips() {
@@ -1286,19 +1421,22 @@
             const prefix = current && !current.endsWith(" ") ? " " : "";
             input.value = current + prefix + tag + " ";
             input.focus();
+            notifyTyping();
         };
 
         function initUserSession() {
             document.getElementById("login-screen").style.display = "none";
             updateMySidebarUI();
+            renderDmList();
+
             if ("Notification" in window && Notification.permission === "default") {
                 Notification.requestPermission().then(updateNotifyButtonUI);
             }
 
             if (!db) return;
 
-            const safeName = profile.name.replace(/[.#$\[\]]/g, "_");
-            const userStatusRef = ref(db, "online/" + safeName);
+            const k = safeKey(profile.name);
+            const userStatusRef = ref(db, "online/" + k);
             const connectedRef = ref(db, ".info/connected");
 
             onValue(connectedRef, (snap) => {
@@ -1311,6 +1449,7 @@
             onValue(ref(db, "profiles"), (snap) => {
                 allProfiles = snap.val() || {};
                 rebuildPingChips();
+                renderDmList();
             });
 
             onValue(ref(db, "online"), (snapshot) => {
@@ -1321,9 +1460,10 @@
                 document.getElementById("online-count").innerText = `В сети — ${keys.length}`;
                 document.getElementById("mobile-online-btn").innerText = `👥 ${keys.length}`;
                 rebuildPingChips();
+                renderDmList();
 
-                keys.forEach(k => {
-                    const u = onlineUsers[k];
+                keys.forEach(key => {
+                    const u = onlineUsers[key];
                     const item = document.createElement("div");
                     item.className = "online-member";
                     item.onclick = () => {
@@ -1351,6 +1491,29 @@
                 });
             });
 
+            // Следим за входящими ЛС, чтобы сами добавлялись в левое меню
+            onValue(ref(db, "dms"), (snap) => {
+                const dmsObj = snap.val() || {};
+                const myKey = safeKey(profile.name);
+                Object.keys(dmsObj).forEach(roomKey => {
+                    if (!roomKey.startsWith("dm_")) return;
+                    const parts = roomKey.slice(3).split("__");
+                    if (parts.length !== 2) return;
+                    let otherKey = null;
+                    if (parts[0] === myKey) otherKey = parts[1];
+                    else if (parts[1] === myKey) otherKey = parts[0];
+                    if (otherKey) {
+                        const foundProfile = Object.values(allProfiles).find(p => safeKey(p.name) === otherKey);
+                        const displayName = foundProfile ? foundProfile.name : otherKey;
+                        if (!openDmPartners.includes(displayName)) {
+                            openDmPartners.push(displayName);
+                            saveDmPartners();
+                            renderDmList();
+                        }
+                    }
+                });
+            });
+
             onValue(ref(db, "voiceRooms"), (snap) => {
                 voiceRoomsData = snap.val() || {};
                 renderVoiceMembers();
@@ -1360,6 +1523,58 @@
             });
 
             loadChannel("general");
+        }
+
+        // ИНДИКАТОР ПЕЧАТИ (TYPING)
+        function notifyTyping() {
+            if (!db || !profile.name) return;
+            const myTypingRef = ref(db, getTypingPath() + "/" + safeKey(profile.name));
+            if (!isCurrentlyTyping) {
+                isCurrentlyTyping = true;
+                onDisconnect(myTypingRef).remove();
+                set(myTypingRef, { name: profile.name, at: Date.now() });
+            }
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                stopTypingNow();
+            }, 2200);
+        }
+
+        function stopTypingNow() {
+            clearTimeout(typingTimeout);
+            isCurrentlyTyping = false;
+            if (!db || !profile.name) return;
+            remove(ref(db, getTypingPath() + "/" + safeKey(profile.name))).catch(() => {});
+        }
+
+        function subscribeTyping() {
+            if (unsubscribeTyping) unsubscribeTyping();
+            const bar = document.getElementById("typing-bar");
+            bar.innerHTML = "";
+            if (!db) return;
+
+            unsubscribeTyping = onValue(ref(db, getTypingPath()), (snap) => {
+                const val = snap.val() || {};
+                const now = Date.now();
+                const typers = Object.values(val)
+                    .filter(item => item && item.name && item.name !== profile.name && (now - (item.at || 0) < 4000))
+                    .map(item => item.name);
+
+                if (typers.length === 0) {
+                    bar.innerHTML = "";
+                    return;
+                }
+
+                let text = "";
+                if (typers.length === 1) text = `${escapeHtml(typers[0])} печатает`;
+                else if (typers.length === 2) text = `${escapeHtml(typers[0])} и ${escapeHtml(typers[1])} печатают`;
+                else text = `${typers.slice(0, 2).map(escapeHtml).join(", ")} и ещё ${typers.length - 2} печатают`;
+
+                bar.innerHTML = `
+                    <span class="typing-dots"><span></span><span></span><span></span></span>
+                    <span><b>${text}</b>...</span>
+                `;
+            });
         }
 
         // ГОЛОСОВЫЕ КОМНАТЫ
@@ -1411,8 +1626,7 @@
 
             peer.on("open", (id) => {
                 myPeerId = id;
-                const safeName = profile.name.replace(/[.#$\[\]]/g, "_");
-                const myVoiceRef = ref(db, `voiceRooms/${roomId}/${safeName}`);
+                const myVoiceRef = ref(db, `voiceRooms/${roomId}/${safeKey(profile.name)}`);
                 onDisconnect(myVoiceRef).remove();
                 set(myVoiceRef, {
                     name: profile.name,
@@ -1471,8 +1685,7 @@
             btn.innerText = micMuted ? "🔇 Выкл" : "🎤 Мик";
 
             if (currentVoiceRoom && myPeerId && db) {
-                const safeName = profile.name.replace(/[.#$\[\]]/g, "_");
-                set(ref(db, `voiceRooms/${currentVoiceRoom}/${safeName}`), {
+                set(ref(db, `voiceRooms/${currentVoiceRoom}/${safeKey(profile.name)}`), {
                     name: profile.name,
                     peerId: myPeerId,
                     muted: micMuted
@@ -1492,8 +1705,7 @@
 
         window.leaveVoiceRoom = function() {
             if (currentVoiceRoom && db) {
-                const safeName = profile.name.replace(/[.#$\[\]]/g, "_");
-                remove(ref(db, `voiceRooms/${currentVoiceRoom}/${safeName}`));
+                remove(ref(db, `voiceRooms/${currentVoiceRoom}/${safeKey(profile.name)}`));
             }
             Object.values(activeCalls).forEach(c => {
                 try { c.close(); } catch (e) {}
@@ -1612,23 +1824,31 @@
         };
 
         window.openUserProfile = function(targetName) {
-            const safeName = targetName.replace(/[.#$\[\]]/g, "_");
-            const target = onlineUsers[safeName] || allProfiles[safeName] || { name: targetName, color: "#6366f1", status: "offline" };
+            const k = safeKey(targetName);
+            const target = onlineUsers[k] || allProfiles[k] || { name: targetName, color: "#6366f1", status: "offline" };
 
             document.getElementById("view-banner").style.background = `linear-gradient(135deg, ${target.color || '#6366f1'}, #1e1b4b)`;
             document.getElementById("view-name").innerText = target.name;
             document.getElementById("view-name").style.color = target.color || "#fff";
-            document.getElementById("view-custom-status").innerText = target.customStatus || (onlineUsers[safeName] ? STATUS_NAMES[target.status || "online"] : "Не в сети");
+            document.getElementById("view-custom-status").innerText = target.customStatus || (onlineUsers[k] ? STATUS_NAMES[target.status || "online"] : "Не в сети");
             document.getElementById("view-bio").innerText = target.bio || "Пользователь пока ничего не написал о себе.";
 
             const dot = document.getElementById("view-status-dot");
-            dot.style.background = onlineUsers[safeName] ? (STATUS_COLORS[target.status] || STATUS_COLORS.online) : "#6b7280";
+            dot.style.background = onlineUsers[k] ? (STATUS_COLORS[target.status] || STATUS_COLORS.online) : "#6b7280";
 
             applyAvatarStyle(document.getElementById("view-avatar"), document.getElementById("view-avatar-letter"), target);
+
+            const dmBtn = document.getElementById("view-dm-btn");
+            if (!target.name || target.name === profile.name) {
+                dmBtn.style.display = "none";
+            } else {
+                dmBtn.style.display = "block";
+                dmBtn.onclick = () => openDirectMessage(target.name);
+            }
+
             document.getElementById("profile-view-modal").style.display = "flex";
         };
 
-        // ПРОВЕРКА ПИНГОВ (@all или @Ник)
         function isMessagePingForMe(text) {
             if (!text || !profile.name) return false;
             const lower = text.toLowerCase();
@@ -1640,13 +1860,20 @@
 
         // КАНАЛЫ, СООБЩЕНИЯ И УДАЛЕНИЕ
         window.switchChannel = function(id, title, desc, el) {
-            if (currentChannel === id) {
+            if (!currentIsDm && currentChannel === id) {
                 closeMobileDrawers();
                 return;
             }
+            stopTypingNow();
+            currentIsDm = false;
+            currentDmTarget = "";
             currentChannel = id;
+
             document.querySelectorAll(".channel-item").forEach(c => c.classList.remove("active"));
-            el.classList.add("active");
+            if (el) el.classList.add("active");
+            renderDmList();
+
+            document.getElementById("current-channel-icon").innerText = "#";
             document.getElementById("current-channel-title").innerText = title;
             document.getElementById("current-channel-desc").innerText = desc;
             document.getElementById("msg-input").placeholder = `Написать в #${title}... (@all или @Ник)`;
@@ -1655,7 +1882,7 @@
             loadChannel(id);
         };
 
-        function loadChannel(channelId) {
+        function loadChannel(roomOrChannelId) {
             if (!db) return;
             const container = document.getElementById("messages-container");
             container.innerHTML = "";
@@ -1663,7 +1890,7 @@
             if (unsubscribeRemoved) unsubscribeRemoved();
 
             let initialLoad = true;
-            const baseRef = ref(db, "channels/" + channelId);
+            const baseRef = ref(db, getMessagesPath());
             const channelRef = query(baseRef, limitToLast(100));
 
             unsubscribeAdded = onChildAdded(channelRef, (snapshot) => {
@@ -1672,7 +1899,7 @@
                 renderMessage(snapshot.key, msg);
 
                 if (!initialLoad && msg.author !== profile.name) {
-                    const pinged = isMessagePingForMe(msg.text);
+                    const pinged = currentIsDm || isMessagePingForMe(msg.text);
                     playMessageChime(pinged);
                     sendSystemNotification(msg.author, msg.text, pinged);
                 }
@@ -1683,12 +1910,13 @@
                 if (el) el.remove();
             });
 
+            subscribeTyping();
             setTimeout(() => { initialLoad = false; }, 1000);
         }
 
         window.deleteMessage = function(msgKey) {
             if (!db || !msgKey) return;
-            remove(ref(db, `channels/${currentChannel}/${msgKey}`));
+            remove(ref(db, `${getMessagesPath()}/${msgKey}`));
         };
 
         function renderMessage(msgKey, msg) {
@@ -1697,11 +1925,11 @@
 
             const row = document.createElement("div");
             row.id = "msg-" + msgKey;
-            const pingedMe = msg.author !== profile.name && isMessagePingForMe(msg.text);
+            const pingedMe = !currentIsDm && msg.author !== profile.name && isMessagePingForMe(msg.text);
             row.className = "msg-row" + (pingedMe ? " mentioned" : "");
 
-            const safeName = (msg.author || "").replace(/[.#$\[\]]/g, "_");
-            const liveProfile = onlineUsers[safeName] || allProfiles[safeName] || {};
+            const k = safeKey(msg.author || "");
+            const liveProfile = onlineUsers[k] || allProfiles[k] || {};
             const avUrl = liveProfile.avatarUrl || msg.avatarUrl || "";
             const color = liveProfile.color || msg.color || "#6366f1";
 
@@ -1761,7 +1989,7 @@
             const now = new Date();
             const time = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
 
-            push(ref(db, "channels/" + currentChannel), {
+            push(ref(db, getMessagesPath()), {
                 author: profile.name,
                 color: profile.color,
                 avatarUrl: profile.avatarUrl,
@@ -1772,9 +2000,17 @@
 
             input.value = "";
             cancelReply();
+            stopTypingNow();
         }
 
         document.getElementById("send-msg-btn").addEventListener("click", handleSendMessage);
+        document.getElementById("msg-input").addEventListener("input", () => {
+            if (document.getElementById("msg-input").value.trim()) {
+                notifyTyping();
+            } else {
+                stopTypingNow();
+            }
+        });
         document.getElementById("msg-input").addEventListener("keydown", (e) => {
             if (e.key === "Enter") handleSendMessage();
         });
